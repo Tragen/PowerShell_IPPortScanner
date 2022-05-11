@@ -119,7 +119,7 @@ Process{
             
             $Options = [System.Management.Automation.Host.ChoiceDescription[]] @("&Yes", "&No")
             [int]$DefaultChoice = 0
-            $Opt =  $host.UI.PromptForChoice($Title , $Info, $Options, $DefaultChoice)
+            $Opt =  $host.UI.PromptForChoice($Title, $Info, $Options, $DefaultChoice)
 
             switch($Opt)
             {                    
