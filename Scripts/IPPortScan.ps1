@@ -1,22 +1,23 @@
 ###############################################################################################################
-# Language     :  PowerShell 4.0
-# Filename     :  IPv4PortScan.ps1 
-# Autor        :  BornToBeRoot (https://github.com/BornToBeRoot)
-# Description  :  Powerful asynchronus IPv4 Port Scanner
-# Repository   :  https://github.com/BornToBeRoot/PowerShell_IPv4PortScanner
+# Language       :  PowerShell 4.0
+# Filename       :  IPPortScan.ps1 
+# Original Autor :  BornToBeRoot (https://github.com/BornToBeRoot)
+# Autor          :  Tragen
+# Description    :  Powerful asynchronus IP Port Scanner
+# Repository     :  https://github.com/Tragen/PowerShell_IPPortScanner
 ###############################################################################################################
 
 <#
     .SYNOPSIS
-    Powerful asynchronus IPv4 Port Scanner
+    Powerful asynchronus IP Port Scanner
 
     .DESCRIPTION
-    This powerful asynchronus IPv4 Port Scanner allows you to scan every Port-Range you want (500 to 2600 would work). Only TCP-Ports are scanned. 
+    This powerful asynchronus IP Port Scanner allows you to scan every Port-Range you want (500 to 2600 would work). Only TCP-Ports are scanned. 
 
     The result will contain the Port number, Protocol, Service name, Description and the Status.
     
     .EXAMPLE
-    .\IPv4PortScan.ps1 -ComputerName fritz.box -EndPort 500
+    .\IPPortScan.ps1 -ComputerName fritz.box -EndPort 500
 
     Port Protocol ServiceName  ServiceDescription               Status
     ---- -------- -----------  ------------------               ------
@@ -24,7 +25,7 @@
       80 tcp      http         World Wide Web HTTP              open
     
     .LINK
-    https://github.com/BornToBeRoot/PowerShell_IPv4PortScanner/blob/master/README.md
+    https://github.com/Tragen/PowerShell_IPPortScanner/blob/master/README.md
 #>
 
 [CmdletBinding()]
@@ -32,7 +33,7 @@ param(
     [Parameter(
         Position=0,
         Mandatory=$true,
-        HelpMessage='ComputerName or IPv4-Address of the device which you want to scan')]
+        HelpMessage='ComputerName or IP-Address of the device which you want to scan')]
     [String]$ComputerName,
 
     [Parameter(
@@ -135,45 +136,45 @@ Process{
     Write-Verbose -Message "Scanning range from $StartPort to $EndPort ($PortsToScan Ports)"
     Write-Verbose -Message "Running with max $Threads threads"
 
-    # Check if ComputerName is already an IPv4-Address, if not... try to resolve it
-    $IPv4Address = [String]::Empty
-	
-	if([bool]($ComputerName -as [IPAddress]))
-	{
-		$IPv4Address = $ComputerName
-	}
-	else
-	{
-		# Get IP from Hostname (IPv4 only)
-		try{
-			$AddressList = @(([System.Net.Dns]::GetHostEntry($ComputerName)).AddressList)
-			
-			foreach($Address in $AddressList)
-			{
-				if($Address.AddressFamily -eq "InterNetwork") 
-				{					
-					$IPv4Address = $Address.IPAddressToString 
-					break					
-				}
-			}					
-		}
-		catch{ }	# Can't get IPAddressList 					
+    # Check if ComputerName is already an IP-Address, if not... try to resolve it
+    $IPAddress = [String]::Empty
 
-       	if([String]::IsNullOrEmpty($IPv4Address))
-		{
-			throw "Could not get IPv4-Address for $ComputerName. (Try to enter an IPv4-Address instead of the Hostname)"
-		}		
-	}
+    if([bool]($ComputerName -as [IPAddress]))
+    {
+        $IPAddress = $ComputerName
+    }
+    else
+    {
+        # Get IP from Hostname (IP only)
+        try{
+            $AddressList = @(([System.Net.Dns]::GetHostEntry($ComputerName)).AddressList)
+
+            foreach($Address in $AddressList)
+            {
+                if($Address.AddressFamily -eq "InterNetwork") 
+                {
+                    $IPAddress = $Address.IPAddressToString 
+                    break
+                }
+            }
+        }
+        catch{ }    # Can't get IPAddressList
+
+        if([String]::IsNullOrEmpty($IPAddress))
+        {
+            throw "Could not get IP-Address for $ComputerName. (Try to enter an IP-Address instead of the Hostname)"
+        }
+    }
 
     # Scriptblock --> will run in runspaces (threads)...
     [System.Management.Automation.ScriptBlock]$ScriptBlock = {
         Param(
-			$IPv4Address,
-			$Port
+            $IPAddress,
+            $Port
         )
 
         try{                      
-            $Socket = New-Object System.Net.Sockets.TcpClient($IPv4Address,$Port)
+            $Socket = New-Object System.Net.Sockets.TcpClient($IPAddress, $Port)
             
             if($Socket.Connected)
             {
@@ -212,17 +213,17 @@ Process{
     foreach($Port in $StartPort..$EndPort)
     {
         $ScriptParams =@{
-			IPv4Address = $IPv4Address
-			Port = $Port
-		}
+            IPAddress = $IPAddress
+            Port = $Port
+        }
 
         # Catch when trying to divide through zero
         try {
-			$Progress_Percent = (($Port - $StartPort) / $PortsToScan) * 100 
-		} 
-		catch { 
-			$Progress_Percent = 100 
-		}
+            $Progress_Percent = (($Port - $StartPort) / $PortsToScan) * 100 
+        } 
+        catch { 
+            $Progress_Percent = 100 
+        }
 
         Write-Progress -Activity "Setting up jobs..." -Id 1 -Status "Current Port: $Port" -PercentComplete ($Progress_Percent)
         
